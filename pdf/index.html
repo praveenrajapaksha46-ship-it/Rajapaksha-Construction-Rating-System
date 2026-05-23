@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="si">
+
+<head>
+<link rel="icon" type="image/png" href="logo.png">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Rajapaksha Construction</title>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- Sinhala Font -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+font-family:'Noto Sans Sinhala',sans-serif;
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+background:
+linear-gradient(135deg,#020617,#0f172a,#111827);
+min-height:100vh;
+padding:30px;
+color:white;
+}
+
+.glass{
+background:rgba(255,255,255,0.08);
+backdrop-filter:blur(20px);
+border:1px solid rgba(255,255,255,0.1);
+box-shadow:0 8px 40px rgba(0,0,0,0.4);
+}
+
+input,select{
+outline:none;
+}
+
+.bill-area{
+background:#081225;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="max-w-7xl mx-auto glass rounded-[35px] p-8">
+
+<!-- Header -->
+
+<div class="flex flex-col lg:flex-row justify-between items-center gap-6 mb-10">
+
+<div class="flex items-center gap-5">
+
+<!-- WEBSITE LOGO -->
+
+<img
+src="Logo.png"
+class="w-24 h-24 rounded-full object-cover shadow-2xl border-4 border-cyan-300"
+>
+
+<div>
+
+<h1 class="text-5xl font-black bg-gradient-to-r from-cyan-300 to-blue-500 bg-clip-text text-transparent">
+Rajapaksha Construction
+</h1>
+
+<p class="text-gray-300 mt-2 text-xl">
+බිල්පත් සහ ඇස්තමේන්තු පද්ධතිය
+</p>
+
+</div>
+
+</div>
+
+<div class="bg-green-500/20 border border-green-400/30 px-8 py-5 rounded-3xl text-center">
+
+<p class="text-green-200 text-lg">
+මුළු එකතුව
+</p>
+
+<h2 id="finalTotal" class="text-5xl font-black text-green-300">
+Rs.0
+</h2>
+
+</div>
+
+</div>
+
+<!-- Inputs -->
+
+<div class="grid md:grid-cols-2 gap-5 mb-8">
+
+<div>
+
+<label class="block mb-2 text-gray-300 text-lg">
+පාරිභෝගිකයාගේ නම
+</label>
+
+<input
+id="customer"
+type="text"
+placeholder="නම ඇතුලත් කරන්න"
+class="w-full bg-white/10 border border-white/10 rounded-2xl p-4 text-white text-lg"
+>
+
+</div>
+
+<div>
+
+<label class="block mb-2 text-gray-300 text-lg">
+Manual මුදල (Optional)
+</label>
+
+<input
+id="manualAmount"
+type="number"
+placeholder="අමතර මුදල"
+class="w-full bg-white/10 border border-white/10 rounded-2xl p-4 text-white text-lg"
+oninput="calculateTotal()"
+>
+
+</div>
+
+</div>
+
+<!-- Table -->
+
+<div class="overflow-x-auto rounded-3xl border border-white/10">
+
+<table class="w-full">
+
+<thead class="bg-cyan-500/20 text-xl">
+
+<tr>
+
+<th class="p-5 text-left">
+ස්ථානය
+</th>
+
+<th class="p-5 text-left">
+ප්‍රමාණය
+</th>
+
+<th class="p-5 text-left">
+එකකයකට මුදල
+</th>
+
+<th class="p-5 text-left">
+මුළු මුදල
+</th>
+
+</tr>
+
+</thead>
+
+<tbody id="tableBody">
+</tbody>
+
+</table>
+
+</div>
+
+<!-- Buttons -->
+
+<div class="flex flex-wrap gap-5 mt-10">
+
+<button
+onclick="addRow()"
+class="bg-cyan-500 hover:scale-105 transition-all duration-300 px-8 py-4 rounded-2xl text-xl font-bold shadow-2xl"
+>
+
++ Row එකක් Add කරන්න
+
+</button>
+
+<button
+onclick="downloadPDF()"
+class="bg-green-500 hover:scale-105 transition-all duration-300 px-8 py-4 rounded-2xl text-xl font-bold shadow-2xl"
+>
+
+PDF Generate කරන්න
+
+</button>
+
+</div>
+
+</div>
+
+<!-- PDF AREA -->
+
+<div id="pdfContent" class="bill-area hidden p-10 text-white w-[900px]">
+</div>
+
+<script>
+
+function addRow(){
+
+const tbody =
+document.getElementById('tableBody');
+
+const tr =
+document.createElement('tr');
+
+tr.className =
+'border-b border-white/10';
+
+tr.innerHTML = `
+
+<td class="p-3">
+
+<input
+type="text"
+placeholder="උදා : Bathroom"
+class="place w-full bg-white/10 p-4 rounded-2xl text-white text-lg">
+
+</td>
+
+<td class="p-3">
+
+<div class="flex gap-2">
+
+<input
+type="number"
+placeholder="0"
+class="qty w-full bg-white/10 p-4 rounded-2xl text-white text-lg"
+oninput="calculateRow(this)"
+>
+
+<select
+class="unit bg-white/10 p-4 rounded-2xl text-white text-lg border border-white/10"
+onchange="calculateTotal()"
+>
+
+<option value="ප්‍රමාණය">
+ප්‍රමාණය
+</option>
+
+<option value="වර්ග අඩි">
+වර්ග අඩි
+</option>
+
+</select>
+
+</div>
+
+</td>
+
+<td class="p-3">
+
+<input
+type="number"
+placeholder="0"
+class="price w-full bg-white/10 p-4 rounded-2xl text-white text-lg"
+oninput="calculateRow(this)"
+>
+
+</td>
+
+<td class="p-3">
+
+<div class="rowTotal bg-cyan-500/20 p-4 rounded-2xl text-cyan-300 font-bold text-xl">
+
+Rs.0
+
+</div>
+
+</td>
+
+`;
+
+tbody.appendChild(tr);
+
+}
+
+function calculateRow(el){
+
+const row =
+el.closest('tr');
+
+const qty =
+Number(
+row.querySelector('.qty').value
+) || 0;
+
+const price =
+Number(
+row.querySelector('.price').value
+) || 0;
+
+const total =
+qty * price;
+
+row.querySelector('.rowTotal')
+.innerText = 'Rs.' + total.toLocaleString();
+
+calculateTotal();
+
+}
+
+function calculateTotal(){
+
+let grandTotal = 0;
+
+const rows =
+document.querySelectorAll('#tableBody tr');
+
+rows.forEach(row=>{
+
+const qty =
+Number(
+row.querySelector('.qty').value
+) || 0;
+
+const price =
+Number(
+row.querySelector('.price').value
+) || 0;
+
+grandTotal += qty * price;
+
+});
+
+const manual =
+Number(
+document.getElementById('manualAmount').value
+) || 0;
+
+grandTotal += manual;
+
+document.getElementById('finalTotal')
+.innerText =
+'Rs.' + grandTotal.toLocaleString();
+
+}
+
+addRow();
+
+async function downloadPDF(){
+
+const customer =
+document.getElementById('customer').value;
+
+const pdfArea =
+document.getElementById('pdfContent');
+
+pdfArea.innerHTML = '';
+
+const rows =
+document.querySelectorAll('#tableBody tr');
+
+let html = `
+
+<div style="
+background:#081225;
+padding:40px;
+border-radius:30px;
+color:white;
+font-family:'Noto Sans Sinhala',sans-serif;
+">
+
+<div style="
+display:flex;
+align-items:center;
+gap:20px;
+margin-bottom:30px;
+">
+
+<!-- PDF LOGO -->
+
+<img
+src='logo.png'
+style='
+width:80px;
+height:80px;
+border-radius:50%;
+object-fit:cover;
+border:4px solid #67e8f9;
+'
+>
+
+<div>
+
+<h1 style="
+font-size:45px;
+margin:0;
+color:#67e8f9;
+">
+
+Rajapaksha Construction
+
+</h1>
+
+<p style="
+font-size:22px;
+color:#cbd5e1;
+">
+
+බිල්පත් සහ ඇස්තමේන්තු 
+
+</p>
+
+</div>
+
+</div>
+
+<div style="
+margin-bottom:25px;
+font-size:22px;
+">
+
+පාරිභෝගිකයා :
+${customer || '-'}
+
+</div>
+
+<table style="
+width:100%;
+border-collapse:collapse;
+font-size:20px;
+overflow:hidden;
+border-radius:20px;
+">
+
+<thead>
+
+<tr style="background:#06b6d4;">
+
+<th style="padding:15px;text-align:left;">
+ස්ථානය
+</th>
+
+<th style="padding:15px;text-align:left;">
+එකකය
+</th>
+
+<th style="padding:15px;text-align:left;">
+එකකයකට මුදල
+</th>
+
+<th style="padding:15px;text-align:left;">
+මුළු මුදල
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+`;
+
+let total = 0;
+
+rows.forEach((row,index)=>{
+
+const place =
+row.querySelector('.place').value;
+
+const qty =
+Number(
+row.querySelector('.qty').value
+) || 0;
+
+const unit =
+row.querySelector('.unit').value;
+
+const price =
+Number(
+row.querySelector('.price').value
+) || 0;
+
+const rowTotal =
+qty * price;
+
+total += rowTotal;
+
+html += `
+
+<tr style="
+background:${index % 2 === 0 ? '#1e293b' : '#334155'};
+">
+
+<td style="padding:15px;">
+${place}
+</td>
+
+<td style="padding:15px;">
+${qty} ${unit}
+</td>
+
+<td style="padding:15px;">
+Rs.${price.toLocaleString()}
+</td>
+
+<td style="padding:15px;">
+Rs.${rowTotal.toLocaleString()}
+</td>
+
+</tr>
+
+`;
+
+});
+
+const manual =
+Number(
+document.getElementById('manualAmount').value
+) || 0;
+
+total += manual;
+
+html += `
+
+</tbody>
+
+</table>
+
+<div style="
+margin-top:30px;
+background:#22c55e;
+padding:20px;
+border-radius:20px;
+font-size:30px;
+font-weight:900;
+width:max-content;
+">
+
+මුළු එකතුව :
+Rs.${total.toLocaleString()}
+
+</div>
+
+<div style="
+margin-top:40px;
+font-size:18px;
+color:#94a3b8;
+">
+
+Contact: 0717 583 659/0112 539 883
+
+</div>
+
+</div>
+
+`;
+
+pdfArea.innerHTML = html;
+
+pdfArea.classList.remove('hidden');
+
+const canvas =
+await html2canvas(pdfArea,{
+scale:2
+});
+
+const imgData =
+canvas.toDataURL('image/png');
+
+const { jsPDF } =
+window.jspdf;
+
+const pdf =
+new jsPDF('p','mm','a4');
+
+const pdfWidth = 210;
+
+const pdfHeight =
+(canvas.height * pdfWidth)
+/ canvas.width;
+
+pdf.addImage(
+imgData,
+'PNG',
+0,
+0,
+pdfWidth,
+pdfHeight
+);
+
+pdf.save(
+'rajapaksha-construction-bill.pdf'
+);
+
+pdfArea.classList.add('hidden');
+
+}
+
+</script>
+
+</body>
+</html>
